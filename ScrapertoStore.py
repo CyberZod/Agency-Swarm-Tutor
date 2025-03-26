@@ -2,6 +2,7 @@ import os
 import asyncio
 import requests
 import re
+import html2text
 from xml.etree import ElementTree
 from typing import List, Optional
 from agency_swarm.tools import BaseTool
@@ -11,8 +12,7 @@ from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 class WebsiteScraperTool(BaseTool):
     """
     A tool for scraping all pages of a website using its sitemap.
-    This tool fetches URLs from the sitemap and scrapes them in parallel batches,
-    then saves the scraped content as markdown (.md) files.
+    Converts scraped HTML into clean Markdown files.
     """
 
     website_url: str = Field(
@@ -25,8 +25,7 @@ class WebsiteScraperTool(BaseTool):
     async def run(self) -> List[str]:
         """
         Runs the website scraper tool.
-        It first fetches the sitemap URLs and then crawls them in parallel.
-        Saves the scraped content as markdown files.
+        Fetches sitemap URLs, scrapes content, and saves as markdown files.
 
         Returns:
             List[str]: List of saved markdown file paths.
@@ -40,12 +39,7 @@ class WebsiteScraperTool(BaseTool):
         return saved_files
 
     def get_sitemap_urls(self) -> List[str]:
-        """
-        Fetches all URLs from the website's sitemap.
-
-        Returns:
-            List[str]: List of URLs.
-        """
+        """Fetches all URLs from the website's sitemap."""
         sitemap_url = f"{self.website_url.rstrip('/')}/sitemap.xml"
         try:
             response = requests.get(sitemap_url)
@@ -61,16 +55,7 @@ class WebsiteScraperTool(BaseTool):
             return []
 
     async def crawl_parallel(self, urls: List[str], max_concurrent: int) -> List[dict]:
-        """
-        Crawls pages in parallel batches.
-
-        Args:
-            urls (List[str]): The list of URLs to crawl.
-            max_concurrent (int): Number of concurrent tasks.
-
-        Returns:
-            List[dict]: List of scraped page content and URLs.
-        """
+        """Crawls pages in parallel batches."""
         print("\n=== Starting Parallel Crawling ===")
 
         browser_config = BrowserConfig(
@@ -94,7 +79,7 @@ class WebsiteScraperTool(BaseTool):
                     if isinstance(result, Exception):
                         print(f"Error scraping {url}: {result}")
                     elif result.success:
-                        scraped_data.append({"url": url, "content": result.html})  # Store URL and HTML content
+                        scraped_data.append({"url": url, "html": result.html})
 
         finally:
             await crawler.close()
@@ -102,30 +87,25 @@ class WebsiteScraperTool(BaseTool):
         return scraped_data
 
     def save_to_markdown(self, scraped_data: List[dict]) -> List[str]:
-        """
-        Saves scraped HTML content as markdown files.
-
-        Args:
-            scraped_data (List[dict]): List of dictionaries containing URLs and scraped content.
-
-        Returns:
-            List[str]: List of file paths where content was saved.
-        """
+        """Converts HTML content to Markdown and saves as .md files."""
         output_dir = "scraped_content"
         os.makedirs(output_dir, exist_ok=True)
         saved_files = []
 
         for data in scraped_data:
             url = data["url"]
-            content = data["content"]
+            html_content = data["html"]
 
-            # Convert URL to a safe filename
+            # Convert HTML to Markdown
+            markdown_content = html2text.html2text(html_content)
+
+            # Generate a safe filename from the URL
             filename = re.sub(r'[<>:"/\\|?*]', '_', url.replace("https://", "").replace("http://", "")) + ".md"
             filepath = os.path.join(output_dir, filename)
 
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(f"# Scraped Content from {url}\n\n")
-                f.write(content)
+                f.write(markdown_content)
 
             saved_files.append(filepath)
 
