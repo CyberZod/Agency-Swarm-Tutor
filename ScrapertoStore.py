@@ -36,7 +36,10 @@ class WebsiteScraperTool(BaseTool):
 
         scraped_data = await self.crawl_parallel(urls, self.max_concurrent)
         saved_files = self.save_to_markdown(scraped_data)
-        return saved_files
+       # Store file paths in shared state
+        self._shared_state.set(f"scraped_files:{self.website_url}", saved_files)
+
+        return f"{len(saved_files)} pages of {self.website_url} have been scraped and stored in the shared state."
 
     def get_sitemap_urls(self) -> List[str]:
         """Fetches all URLs from the website's sitemap."""
@@ -116,3 +119,7 @@ class WebsiteScraperTool(BaseTool):
 if __name__ == "__main__":
     tool = WebsiteScraperTool(website_url="https://ai.pydantic.dev", max_concurrent=10)
     print(asyncio.run(tool.run()))
+
+    # Retrieve saved files from shared state
+    print("\nShared State:", tool._shared_state.get(f"scraped_files:https://ai.pydantic.dev"))
+
