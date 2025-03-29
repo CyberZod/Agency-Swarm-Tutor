@@ -1,5 +1,5 @@
 import asyncio
-from scrapepro import UploadToOpenAITool  # Adjust the import path if needed
+from UploadTool import UploadToOpenAITool  # Adjust the import path if needed
 
 async def test_upload():
     tool = UploadToOpenAITool()
