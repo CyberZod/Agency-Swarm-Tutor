@@ -1,8 +1,6 @@
 import os
 import asyncio
 import requests
-import re
-import html2text
 from xml.etree import ElementTree
 from typing import List, Optional
 from agency_swarm.tools import BaseTool
@@ -12,7 +10,7 @@ from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 class WebsiteScraperTool(BaseTool):
     """
     A tool for scraping all pages of a website using its sitemap.
-    Converts scraped HTML into clean Markdown files.
+    This tool fetches URLs from the sitemap and scrapes them in parallel batches.
     """
 
     website_url: str = Field(
@@ -25,24 +23,24 @@ class WebsiteScraperTool(BaseTool):
     async def run(self) -> List[str]:
         """
         Runs the website scraper tool.
-        Fetches sitemap URLs, scrapes content, and saves as markdown files.
+        It first fetches the sitemap URLs and then crawls them in parallel.
 
         Returns:
-            List[str]: List of saved markdown file paths.
+            List[str]: A list of scraped page contents.
         """
         urls = self.get_sitemap_urls()
         if not urls:
             return ["No URLs found to scrape."]
 
-        scraped_data = await self.crawl_parallel(urls, self.max_concurrent)
-        saved_files = self.save_to_markdown(scraped_data)
-       # Store file paths in shared state
-        self._shared_state.set(f"scraped_files:{self.website_url}", saved_files)
-
-        return f"{len(saved_files)} pages of {self.website_url} have been scraped and stored in the shared state."
+        return await self.crawl_parallel(urls, self.max_concurrent)
 
     def get_sitemap_urls(self) -> List[str]:
-        """Fetches all URLs from the website's sitemap."""
+        """
+        Fetches all URLs from the website's sitemap.
+
+        Returns:
+            List[str]: List of URLs.
+        """
         sitemap_url = f"{self.website_url.rstrip('/')}/sitemap.xml"
         try:
             response = requests.get(sitemap_url)
@@ -57,8 +55,17 @@ class WebsiteScraperTool(BaseTool):
             print(f"Error fetching sitemap: {e}")
             return []
 
-    async def crawl_parallel(self, urls: List[str], max_concurrent: int) -> List[dict]:
-        """Crawls pages in parallel batches."""
+    async def crawl_parallel(self, urls: List[str], max_concurrent: int) -> List[str]:
+        """
+        Crawls pages in parallel batches.
+
+        Args:
+            urls (List[str]): The list of URLs to crawl.
+            max_concurrent (int): Number of concurrent tasks.
+
+        Returns:
+            List[str]: List of scraped page contents.
+        """
         print("\n=== Starting Parallel Crawling ===")
 
         browser_config = BrowserConfig(
@@ -82,44 +89,18 @@ class WebsiteScraperTool(BaseTool):
                     if isinstance(result, Exception):
                         print(f"Error scraping {url}: {result}")
                     elif result.success:
-                        scraped_data.append({"url": url, "html": result.html})
+                        scraped_data.append(result.html)
 
         finally:
             await crawler.close()
 
         return scraped_data
 
-    def save_to_markdown(self, scraped_data: List[dict]) -> List[str]:
-        """Converts HTML content to Markdown and saves as .md files."""
-        output_dir = "scraped_content"
-        os.makedirs(output_dir, exist_ok=True)
-        saved_files = []
-
-        for data in scraped_data:
-            url = data["url"]
-            html_content = data["html"]
-
-            # Convert HTML to Markdown
-            markdown_content = html2text.html2text(html_content)
-
-            # Generate a safe filename from the URL
-            filename = re.sub(r'[<>:"/\\|?*]', '_', url.replace("https://", "").replace("http://", "")) + ".md"
-            filepath = os.path.join(output_dir, filename)
-
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(f"# Scraped Content from {url}\n\n")
-                f.write(markdown_content)
-
-            saved_files.append(filepath)
-
-        print(f"\nSaved {len(saved_files)} pages to '{output_dir}'")
-        return saved_files
-
 
 if __name__ == "__main__":
     tool = WebsiteScraperTool(website_url="https://ai.pydantic.dev", max_concurrent=10)
-    print(asyncio.run(tool.run()))
-
-    # Retrieve saved files from shared state
-    print("\nShared State:", tool._shared_state.get(f"scraped_files:https://ai.pydantic.dev"))
-
+    check = asyncio.run(tool.run())
+    if check:
+        print("Success")
+    else:
+        print("Failed")
