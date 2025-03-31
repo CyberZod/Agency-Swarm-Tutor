@@ -4,7 +4,7 @@ from openai import AsyncOpenAI
 from pathlib import Path
 import aiofiles
 from agency_swarm.tools import BaseTool
-from thread_functions import load_threads
+from WebsiteQA.thread_functions import load_threads
 import os
 from dotenv import load_dotenv
 from pydantic import Field
@@ -18,15 +18,6 @@ class UploadToOpenAITool(BaseTool):
     Async implementation for uploading files to OpenAI with vector store management.
     Handles concurrent uploads and automatic vector store association.
     """
-
-    def __init__(self):
-        """Initialize the OpenAI async client."""
-        super().__init__()  # Use private variable to avoid Pydantic validation
-        UploadToOpenAITool._shared_state = {
-            "session_name": "First_Rag",
-            "scraped_files": ["./test1.md", "./test2.md"]  # Replace with actual file paths
-        }
-
     async def run(self) -> str:
         """Main async entry point for the upload workflow."""
         # ✅ Retrieve session ID
@@ -125,10 +116,13 @@ class UploadToOpenAITool(BaseTool):
                 async with aiofiles.open(path, "rb") as f:
                     file_content = await f.read()
                     # Pass filename with extension as part of the file tuple
-                    return await client.files.create(
+                    file = await client.files.create(
                         file=(filename, file_content),  # Include filename in upload
                         purpose="assistants"
                     )
+                    # After successful upload, delete the file from local storage
+                    await aiofiles.os.remove(path)
+                    return file
             except Exception as e:
                 if attempt < retries - 1:
                     print(f"⚠️ Retry {attempt + 1}/{retries} for {filename} due to error: {e}")
