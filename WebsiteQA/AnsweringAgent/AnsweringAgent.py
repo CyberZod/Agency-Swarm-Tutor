@@ -1,5 +1,5 @@
 from agency_swarm import Agent
-from agency_swarm.tools import FileSearch # Import the FileSearch tool
+from agency_swarm.tools import FileSearch, CodeInterpreter # Import the FileSearch tool
 
 class AnsweringAgent(Agent):
     def __init__(self):
@@ -7,7 +7,7 @@ class AnsweringAgent(Agent):
             name="AnsweringAgent",
             description="Answers user questions based on the website content uploaded to the vector store.",
             instructions="./instructions.md", # Points to the instructions file
-            tools=[FileSearch], # Explicitly include the FileSearch tool
+            tools=[FileSearch, CodeInterpreter], # Explicitly include the FileSearch tool
             # tools_folder="./tools", # No custom tools in this folder for this agent
             temperature=0.1, # Slightly higher temperature for more natural answers
             max_prompt_tokens=25000,

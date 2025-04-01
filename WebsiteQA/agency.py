@@ -50,4 +50,4 @@ async def activate(session_name):
     agency.demo_gradio()
 
 if __name__ == '__main__':
-    asyncio.run(activate("Pydantic AI"))
+    asyncio.run(activate("Agency Swarm"))
