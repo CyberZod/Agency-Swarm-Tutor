@@ -2,3 +2,5 @@
 FAISS.txt
 *.json
 settings.json
+.venv
+__pycache__
