@@ -4,7 +4,7 @@ requests
 html2text
 crawl4ai
 python-dotenv
-openai>=1.10.0 # Specify a recent version for Assistants API v2 features like vector store management
+openai>=1.10.0
 aiofiles
-lxml # Often needed for XML parsing (sitemaps)
+lxml
 gradio
