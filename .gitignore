@@ -1,2 +1,4 @@
 .env
 FAISS.txt
+*.json
+settings.json

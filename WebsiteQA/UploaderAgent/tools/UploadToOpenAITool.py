@@ -3,6 +3,7 @@ from typing import List
 from openai import AsyncOpenAI
 from pathlib import Path
 import aiofiles
+import shutil # Added for directory removal
 from agency_swarm.tools import BaseTool
 from WebsiteQA.thread_functions import load_threads # Assuming thread_functions.py is accessible
 import os
@@ -62,10 +63,31 @@ class UploadToOpenAITool(BaseTool):
             # Clear the scraped files from shared state after successful upload
             self._shared_state.set("scraped_files", [])
 
-            return f"✅ Successfully uploaded {len(file_ids)} files. Thread: {main_thread_id}, Vector Store: {vs_id}"
+            # --- Delete the scraped_content directory ---
+            if file_paths: # Only attempt deletion if there were files to process
+                try:
+                    # Determine the directory from the first file path
+                    first_file_path = Path(file_paths[0])
+                    directory_to_delete = first_file_path.parent
+                    # Safety check: ensure we are deleting the expected directory
+                    if directory_to_delete.name == "scraped_content":
+                        print(f"Attempting to delete directory: {directory_to_delete}")
+                        shutil.rmtree(directory_to_delete)
+                        print(f"Successfully deleted directory: {directory_to_delete}")
+                    else:
+                        print(f"⚠️ Warning: Determined directory '{directory_to_delete}' does not match expected 'scraped_content'. Skipping deletion.")
+                except FileNotFoundError:
+                     print(f"⚠️ Warning: Directory '{directory_to_delete}' not found. Skipping deletion.")
+                except Exception as delete_error:
+                    print(f"⚠️ Warning: Failed to delete directory '{directory_to_delete}': {delete_error}")
+            else:
+                print("No file paths found, skipping directory deletion.")
+            # --- End of directory deletion ---
+
+            return f"✅ Successfully uploaded {len(file_ids)} files. Thread: {main_thread_id}, Vector Store: {vs_id}. Scraped content directory deleted."
 
         except Exception as e:
-            return f"❌ Critical error during upload/attachment: {str(e)}"
+            return f"❌ Critical error during upload/attachment or cleanup: {str(e)}"
 
     async def _manage_vector_store(self, thread_id: str, session_name: str) -> str:
         """Handle vector store lifecycle for a thread."""
