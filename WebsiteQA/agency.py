@@ -3,15 +3,11 @@ from CEO import CEO
 from ScraperAgent import ScraperAgent
 from UploaderAgent import UploaderAgent
 from AnsweringAgent import AnsweringAgent
-from thread_functions import load_threads, save_threads
+from thread_functions import load_threads, save_threads, deactivate
 from dotenv import load_dotenv
 import asyncio
-import os
-from delete_threads import deactivate
 
 load_dotenv()
-# Assuming thread_functions.py is accessible in the environment or added to PYTHONPATH
-# If UploadToOpenAITool relies on it, ensure it's available.
 
 # Instantiate agents
 ceo = CEO()
@@ -47,4 +43,4 @@ async def activate(session_name):
     agency.demo_gradio()
 
 if __name__ == '__main__':
-    asyncio.run(activate("Talesconnect Swarm"))
+    asyncio.run(activate("{session_name}")) # Replace with actual session name e.g. "Agency Swarm"
