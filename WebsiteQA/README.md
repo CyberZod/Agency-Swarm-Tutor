@@ -26,12 +26,9 @@ To install the required dependencies for this agency, navigate to the `WebsiteQA
 pip install -r requirements.txt
 ```
 
-Ensure you have `agency_swarm` installed. You also need to set up the following environment variables, as defined in `.env.exmaple` after renaming it to '.env':
+Ensure you have `agency_swarm` installed. You also need to set up the following environment variables, as defined in `.env.exmaple` after renaming it to `.env`:
 
 - `OPENAI_API_KEY`: Your OpenAI API key for accessing OpenAI services.
-
-
-Refer to the `.env.example` file in the main project directory for an example of how to set up these environment variables.
 
 ## Agents
 
